@@ -1,2 +1,2 @@
 # sales-system
-ssales system whit tkinter
+sales system whit tkinter
