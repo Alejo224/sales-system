@@ -5,7 +5,7 @@ import os
 
 # Crear ventana principal
 root = tk.Tk()
-clientes = []
+clientes = [] #GUARDAR LA INFORMACION DE LOS CLIENTES 
 last_id_cliente = 0
 last_id_factura = 0
 
@@ -41,8 +41,8 @@ class Factura:
 
 productos = [
     Producto("01", "Coca-Cola", 30, 1000, 1500, "21/05/2024"),
-    Producto("02", "Pepsi", 30, 1000, 1500, "21/05/2024"),
-    Producto("03", "Papas Margaritas", 20, 4000, 5000, "04/08/2024"),
+    Producto("02", "Pepsi   ", 30, 1000, 1500, "21/05/2024"),
+    Producto("03", "Margaritas", 20, 4000, 5000, "04/08/2024"),
     Producto("04", "Choclito", 20, 4100, 5200, "01/11/2024"),
     Producto("05", "Doritos", 15, 3500, 4000, "11/10/2024")
 ]
@@ -99,7 +99,8 @@ def cargar_facturas():
         with open("facturas.txt", "r") as f:
             facturas.clear()
             for line in f:
-                id_factura, id_cliente, fecha_factura, total_factura, productos_vendidos_str = line.strip().split(",")
+                # Ajustamos la cantidad de valores a desempacar
+                id_factura, id_cliente, fecha_factura, total_factura, productos_vendidos_str, monto_pagado, cambio = line.strip().split(",")
                 productos_vendidos = []
                 for pv_str in productos_vendidos_str.split(";"):
                     id_producto, cantidad, precio = pv_str.split(":")
@@ -112,22 +113,24 @@ def generar_factura_txt(factura, monto_pagado=None, cambio=None):
     cliente = next((c for c in clientes if c.id_cliente == factura.id_cliente), None)
     if cliente:
         with open(f"factura_{factura.id_factura}.txt", "w") as f:
-            f.write("TULUA CENTER  T.C.\n")
             f.write(f"Fecha: {factura.fecha_factura}\n")
             f.write(f"Factura N#: {factura.id_factura}\n\n")
+            f.write("TULUA CENTER  T.C.\n")
             f.write(f"Cliente: {cliente.nombre}\n")
             f.write(f"Documento: {cliente.documento}\n\n")
             f.write("Productos:\n")
-            f.write("ID\tNombre\tCantidad\tPrecio Unitario\tTotal\n")
+            
+            
             for pv in factura.productos_vendidos:
                 producto = next((p for p in productos if p.id_producto == pv["id_producto"]), None)
                 if producto:
                     total_producto = pv["cantidad"] * pv["precio"]
-                    f.write(f"{producto.id_producto}   \t{producto.nombre}   \t{pv['cantidad']}    \t{pv['precio']}    \t{total_producto}\n")
-            f.write(f"\nTotal Factura: {factura.total_factura}\n")
+                    f.write(f"{producto.id_producto}  \t{producto.nombre} \t{pv['cantidad']} unid/s  \t${pv['precio']} x Unid    total:\t${total_producto}\n")
+                    
+            f.write(f"\nTotal Factura: ${factura.total_factura}\n")
             if monto_pagado is not None and cambio is not None:
-                f.write(f"Monto Pagado: {monto_pagado}\n")
-                f.write(f"Cambio: {cambio:.2f}\n")
+                f.write(f"Efectivo (COP): ${monto_pagado}\n")
+                f.write(f"Cambio: ${cambio:.2f}\n")
 #actualizar
 def actualizar_archivo_facturas():
     with open("facturas.txt", "w") as f:
@@ -139,6 +142,8 @@ def actualizar_archivo_facturas():
 def menu_productos():
     for widget in root.winfo_children():
         widget.destroy()
+    
+    root.title("PRODUCTOS") #NOMBRE DE LA VENTANA 
     label_titulo_productos = tk.Label(root, text="PRODUCTOS REGISTRADOS")
     label_titulo_productos.grid(row=0, column=0, columnspan=10, padx=10)
     atributos = ["ID", "Nombre", "Cantidad", "Costo compra", "Precio venta", "Fecha de vencimiento"]
@@ -155,6 +160,8 @@ def menu_productos():
 def menu_clientes():
     for widget in root.winfo_children():
         widget.destroy()
+        
+    root.title("REGISTRAR CLIENTE") #NOMBRE DE LA VENTANA     
     label_titulo_clientes = tk.Label(root, text="CLIENTES")
     label_titulo_clientes.grid(row=0, column=0)
     label_id_cliente = tk.Label(root, text=f"Clientes registrados: {last_id_cliente}")
@@ -190,13 +197,14 @@ def menu_clientes():
 def menu_factura():
     for widget in root.winfo_children():
         widget.destroy()
-
+    
+    root.title("PRODUCTOS") #NOMBRE DE LA VENTANA 
     label_titulo_productos = tk.Label(root, text="PRODUCTOS REGISTRADOS")
     label_titulo_productos.grid(row=0, column=0, columnspan=10, padx=10, pady=5)
     atributos = ["ID", "Nombre", "Disponible", "Costo de compra", "Precio venta", "Fecha de vencimiento", "Ingresar cantidad"]
     for i, attr in enumerate(atributos):
         tk.Label(root, text=attr.upper()).grid(row=1, column=i, padx=10)
-    
+
     entries = []
     for i, producto in enumerate(productos):
         valores = [producto.id_producto, producto.nombre, producto.cantidad, producto.costo_compra, producto.precio_venta, producto.fechaVencimiento]
@@ -205,10 +213,6 @@ def menu_factura():
         entry_cantidad = tk.Entry(root, width=10)
         entry_cantidad.grid(row=i+2, column=len(atributos)-1, padx=3)
         entries.append((producto.id_producto, entry_cantidad))
-    
-    tk.Label(root, text="Monto Pagado:").grid(row=len(productos) + 2, column=0)
-    entry_monto_pagado = tk.Entry(root, width=15)
-    entry_monto_pagado.grid(row=len(productos) + 2, column=1)
 
     def guardar_productos_factura():
         productos_vendidos = []
@@ -226,31 +230,48 @@ def menu_factura():
             elif cantidad_str:
                 messagebox.showinfo("Error", f"Cantidad inválida para {id_producto}")
                 return
-        
         if productos_vendidos:
-            try:
-                monto_pagado = float(entry_monto_pagado.get())
-            except ValueError:
-                messagebox.showerror("Error", "Monto pagado no es un número válido.")
-                return
-
             global last_id_factura
             last_id_factura += 1
             id_cliente = last_id_cliente
             fecha_factura = datetime.datetime.now().strftime("%d/%m/%Y")
             total_factura = sum(pv["cantidad"] * pv["precio"] for pv in productos_vendidos)
-            
-            if monto_pagado < total_factura:
-                messagebox.showerror("Error", "El monto pagado es menor que el total de la factura.")
-                return
-
-            cambio = monto_pagado - total_factura
             factura = Factura(last_id_factura, id_cliente, fecha_factura, total_factura, productos_vendidos)
             facturas.append(factura)
-            guardar_factura(factura, monto_pagado, cambio)
+            #Llamar a guardar_productos despues de ajustar las cantidades de los productos
             guardar_productos()
-            messagebox.showinfo("Guardado", f"Factura guardada correctamente.\nCambio a devolver: ${cambio:.2f}")
-            volver_menu_principal()
+            
+            abrir_pagar_factura(factura, total_factura)
+
+    def abrir_pagar_factura(factura, total_factura):
+        def confirmar_pago():
+            try:
+                monto_pagado = float(entry_monto_pagado.get())
+                if monto_pagado >= total_factura:
+                    cambio = monto_pagado - total_factura
+                    guardar_factura(factura, monto_pagado, cambio)
+                    messagebox.showinfo("Pago Exitoso", f"Factura ID: {factura.id_factura} pagada correctamente. Cambio: ${cambio:.2f}")
+                    
+                    
+                    pago_window.destroy()  # Cierra la ventana de pago una vez el pago es exitoso
+                    menu_principal()  # Vuelve al menú principal
+                    
+                else:
+                    messagebox.showinfo("Advertencia", "El monto pagado es menor al total de la factura.")
+                    # No cerrar la ventana para permitir al usuario ingresar nuevamente
+            except ValueError:
+                messagebox.showwaring("Error", "Monto pagado inválido. Por favor ingrese un valor válido")
+                # No cerrar la ventana para permitir al usuario ingresar nuevamente
+            
+        pago_window = tk.Toplevel(root)
+        pago_window.title("PAGAR FACTURA")
+        tk.Label(pago_window, text=f"ID Factura: {factura.id_factura}").grid(row=0, column=0)
+        tk.Label(pago_window, text=f"Total Factura: ${factura.total_factura}").grid(row=1, column=0)
+        tk.Label(pago_window, text="Efectivo (COP):").grid(row=2, column=0)
+        entry_monto_pagado = tk.Entry(pago_window)
+        entry_monto_pagado.grid(row=2, column=1)
+        boton_confirmar = tk.Button(pago_window, text="Confirmar Pago", command=confirmar_pago)
+        boton_confirmar.grid(row=3, column=0, columnspan=2)
 
     boton_guardar_productos = tk.Button(root, text="Guardar productos", command=guardar_productos_factura)
     boton_guardar_productos.grid(row=len(productos) + 3, column=len(atributos) - 1)
@@ -261,6 +282,7 @@ def ver_factura():
     # Eliminar todos los widgets de la ventana
     for widget in root.winfo_children():
         widget.destroy()
+    root.title("MOSTRAR FACTURAS REGISTRADAS")
     label_titulo_facturas = tk.Label(root, text="FACTURAS")
     label_titulo_facturas.grid(row=0, column=0, columnspan=10)
     lista_facturas = tk.Listbox(root, width=75)
@@ -271,39 +293,32 @@ def ver_factura():
         lista_facturas.insert(tk.END, f"ID: {factura.id_factura} | Cliente: {cliente_info} | Total: ${factura.total_factura} | Fecha: {factura.fecha_factura}")
 
     
-    def pagar_factura():
+    def ver_detalles_factura():
         selected_indices = lista_facturas.curselection()
         if not selected_indices:
-            messagebox.showwarning("Advertencia", "Seleccione una factura para pagar.")
+            messagebox.showwarning("Advertencia", "Seleccione una factura para ver los detalles.")
             return
         selected_index = selected_indices[0]
         selected_factura = facturas[selected_index]
+        factura_filename = f"factura_{selected_factura.id_factura}.txt"
 
-        def confirmar_pago():
-            monto_pagado = float(entry_monto_pagado.get())
-            if monto_pagado >= selected_factura.total_factura:
-                messagebox.showinfo("Pago Exitoso", f"Factura ID: {selected_factura.id_factura} pagada correctamente.")
-                lista_facturas.delete(selected_index)
-                facturas.remove(selected_factura)
-                with open("facturas.txt", "w") as f:
-                    for factura in facturas:
-                        productos_vendidos_str = ";".join([f"{pv['id_producto']}:{pv['cantidad']}:{pv['precio']}" for pv in factura.productos_vendidos])
-                        f.write(f"{factura.id_factura},{factura.id_cliente},{factura.fecha_factura},{factura.total_factura},{productos_vendidos_str}\n")
-                pago_window.destroy()
-            else:
-                messagebox.showwarning("Advertencia", "El monto pagado es menor al total de la factura.")
+        if os.path.exists(factura_filename):
+            with open(factura_filename, "r") as f:
+                factura_contenido = f.read()
+             # Eliminar todos los widgets de la ventana
+            for widget in root.winfo_children():
+                widget.destroy()
+            
+            root.title(f"RECIBO DE LA FACTURA {selected_factura.id_factura}")
+            tk.Label(root, text=factura_contenido, justify=tk.LEFT).grid(row=0, column=0, padx=10, pady=10)
+            tk.Button(root, text="Descargar archivo").grid(row=1, column=0, columnspan=10)
+            tk.Button(root, text="Regresar", command=ver_factura).grid(row=2, column=0, columnspan=10)
+            tk.Button(root, text="volver menu principal", command=menu_principal).grid(row=3, column=0, columnspan=10)
+            
+        else:
+            messagebox.showwarning("Advertencia", "El archivo de la factura no existe.")
 
-        pago_window = tk.Toplevel(root)
-        pago_window.title("Pagar Factura")
-        tk.Label(pago_window, text=f"ID Factura: {selected_factura.id_factura}").grid(row=0, column=0)
-        tk.Label(pago_window, text=f"Total Factura: ${selected_factura.total_factura}").grid(row=1, column=0)
-        tk.Label(pago_window, text="Monto Pagado:").grid(row=2, column=0)
-        entry_monto_pagado = tk.Entry(pago_window)
-        entry_monto_pagado.grid(row=2, column=1)
-        boton_confirmar = tk.Button(pago_window, text="Confirmar Pago", command=confirmar_pago)
-        boton_confirmar.grid(row=3, column=0, columnspan=2)
-
-    boton_pagar_factura = tk.Button(root, text="Pagar Factura Seleccionada", command=pagar_factura)
+    boton_pagar_factura = tk.Button(root, text="Mostrar Factura Seleccionada", command=ver_detalles_factura)
     boton_pagar_factura.grid(row=2, column=0, columnspan=2)
     boton_nuevo_cliente = tk.Button(root, text="Añadir nuevo cliente", command=menu_clientes)
     boton_nuevo_cliente.grid(row=3, column=0, columnspan=2)
@@ -323,6 +338,7 @@ def salir():
 def informe_productos_agotados():
     for widget in root.winfo_children():
         widget.destroy()
+    root.title("INFORME")
     label_titulo = tk.Label(root, text="PRODUCTOS AGOTADOS")
     label_titulo.grid(row=0, column=0, columnspan=2, padx=10, pady=5)
     productos_agotados = [p for p in productos if p.cantidad == 0]
@@ -334,11 +350,47 @@ def informe_productos_agotados():
         tk.Label(root, text="No hay productos agotados.").grid(row=1, column=0, columnspan=2)
     boton_volver = tk.Button(root, text="Volver al menú principal", command=volver_menu_principal)
     boton_volver.grid(row=len(productos_agotados)+2, column=0, columnspan=2)
+#funcion
+def ventas_ultimo_dia():
+    hoy = datetime.datetime.now()
+    hace_una_semana = hoy - datetime.timedelta(days=7)
+    ventas = {producto.id_producto: 0 for producto in productos}
+    
+    for factura in facturas:
+        fecha_factura = datetime.datetime.strptime(factura.fecha_factura, "%d/%m/%Y")
+        if fecha_factura >= hace_una_semana:
+            for pv in factura.productos_vendidos:
+                ventas[pv["id_producto"]] += pv["cantidad"]
+    
+    return ventas
 
+def informe_baja_rotacion():
+    for widget in root.winfo_children():
+        widget.destroy()
+    root.title("INFORME")
+    label_titulo = tk.Label(root, text="PRODUCTOS DE BAJA ROTACIÓN")
+    label_titulo.grid(row=0, column=0, columnspan=2, padx=10, pady=5)
+
+    ventas = ventas_ultimo_dia()
+    umbral = 5  # Puedes ajustar este umbral según tus necesidades
+    productos_baja_rotacion = [p for p in productos if ventas[p.id_producto] < umbral]
+
+    if productos_baja_rotacion:
+        for i, producto in enumerate(productos_baja_rotacion):
+            tk.Label(root, text=producto.id_producto).grid(row=i+1, column=0, padx=10)
+            tk.Label(root, text=producto.nombre).grid(row=i+1, column=1, padx=10)
+            tk.Label(root, text=f"Ventas: {ventas[producto.id_producto]}").grid(row=i+1, column=2, padx=10)
+    else:
+        tk.Label(root, text="No hay productos de baja rotación.").grid(row=1, column=0, columnspan=2)
+    
+    boton_volver = tk.Button(root, text="Volver al menú principal", command=volver_menu_principal)
+    boton_volver.grid(row=len(productos_baja_rotacion)+2, column=0, columnspan=2)
+    
 # Función para generar informe de ventas
 def informe_ventas():
     for widget in root.winfo_children():
         widget.destroy()
+    root.title("INFORME")
     label_titulo = tk.Label(root, text="INFORME DE VENTAS")
     label_titulo.grid(row=0, column=0, columnspan=5, padx=10, pady=5)
     atributos = ["Factura ID", "Cliente ID", "Fecha", "Total", "Productos Vendidos"]
@@ -351,7 +403,7 @@ def informe_ventas():
         valores = [factura.id_factura, factura.id_cliente, factura.fecha_factura, factura.total_factura, productos_vendidos_str]
         for j, value in enumerate(valores):
             tk.Label(root, text=value).grid(row=i+2, column=j, padx=10)
-    tk.Label(root, text=f"Total de ventas: {total_ventas}").grid(row=len(facturas)+2, column=0, columnspan=5)
+    tk.Label(root, text=f"Total de ventas: ${total_ventas}").grid(row=len(facturas)+2, column=0, columnspan=5)
     boton_volver = tk.Button(root, text="Volver al menú principal", command=volver_menu_principal)
     boton_volver.grid(row=len(facturas)+3, column=0, columnspan=5)
 
@@ -371,18 +423,22 @@ def menu_principal():
     factura_boton.grid(row=3, column=0, padx=10, pady=5)
     agotados_boton = tk.Button(root, text="Productos Agotados", command=informe_productos_agotados)
     agotados_boton.grid(row=4, column=0, padx=10, pady=5)
+    tk.Button(root, text="Productos de baja rotación", command=informe_baja_rotacion).grid(row=5, column=0, padx=10, pady=5)
     ventas_boton = tk.Button(root, text="Informe de Ventas", command=informe_ventas)
-    ventas_boton.grid(row=5, column=0, padx=10, pady=5)
+    ventas_boton.grid(row=6, column=0, padx=10, pady=5)
     salir_boton = tk.Button(root, text="Salir del programa", command=salir)
-    salir_boton.grid(row=6, column=0, padx=10, pady=5)
+    salir_boton.grid(row=7, column=0, padx=10, pady=5)
 
 
 # Cargar datos al iniciar
 cargar_clientes()
 cargar_productos()
+cargar_facturas()
+
 informe_productos_agotados()
 informe_ventas()
-cargar_facturas
-
+informe_baja_rotacion()
+#mostrar menu al iniciar
 menu_principal()
+#Iniciar el bucle de la ventana
 root.mainloop()
