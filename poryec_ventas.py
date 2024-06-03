@@ -16,8 +16,9 @@ class Cliente:
         self.nombre = nombre
         self.fechaNacimiento = fechaNacimiento
         self.documento = documento
+    #para poder mostar la informacion en el .txt de una forma legible
     def __str__(self):
-        return f"ID: {self.id_cliente} | Nombre: {self.nombre} | Documento: {self.documento}"
+        return f"ID: {self.id_cliente} | Nombre: {self.nombre} | Fecha Nacimiento: {self.fechaNacimiento} | Documento: {self.documento}"
 
 
 # Clase producto
@@ -117,6 +118,7 @@ def generar_factura_txt(factura, monto_pagado=None, cambio=None):
             f.write(f"Factura N#: {factura.id_factura}\n\n")
             f.write("TULUA CENTER  T.C.\n")
             f.write(f"Cliente: {cliente.nombre}\n")
+            f.write(f"Fecha de nacimiento: {cliente.fechaNacimiento}\n")
             f.write(f"Documento: {cliente.documento}\n\n")
             f.write("Productos:\n")
             
@@ -290,7 +292,7 @@ def ver_factura():
     for factura in facturas:
         cliente = next((c for c in clientes if c.id_cliente == factura.id_cliente), None)
         cliente_info = f"{cliente.nombre} ({cliente.documento})" if cliente else "Cliente no encontrado"
-        lista_facturas.insert(tk.END, f"ID: {factura.id_factura} | Cliente: {cliente_info} | Total: ${factura.total_factura} | Fecha: {factura.fecha_factura}")
+        lista_facturas.insert(tk.END, f"ID: {factura.id_factura} | Cliente: {cliente_info} | Total: ${factura.total_factura} | Fecha Nacimiento: {cliente.fechaNacimiento}")
 
     
     def ver_detalles_factura():
@@ -311,9 +313,9 @@ def ver_factura():
             
             root.title(f"RECIBO DE LA FACTURA {selected_factura.id_factura}")
             tk.Label(root, text=factura_contenido, justify=tk.LEFT).grid(row=0, column=0, padx=10, pady=10)
-            tk.Button(root, text="Descargar archivo").grid(row=1, column=0, columnspan=10)
-            tk.Button(root, text="Regresar", command=ver_factura).grid(row=2, column=0, columnspan=10)
-            tk.Button(root, text="volver menu principal", command=menu_principal).grid(row=3, column=0, columnspan=10)
+            
+            tk.Button(root, text="Regresar", command=ver_factura).grid(row=1, column=0, columnspan=10)
+            tk.Button(root, text="volver menu principal", command=menu_principal).grid(row=2, column=0, columnspan=10)
             
         else:
             messagebox.showwarning("Advertencia", "El archivo de la factura no existe.")
